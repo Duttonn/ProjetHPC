@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(make:*)",
+      "Bash(./bin/motion2:*)",
+      "Bash(./bin/motion:*)",
+      "Bash(sysctl:*)",
+      "Bash(ssh:*)"
+    ]
+  }
+}

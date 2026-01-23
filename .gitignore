@@ -1,0 +1,9 @@
+build/
+bin/
+*.mp4
+*.zip
+*.out
+*.err
+logs_*/
+__MACOSX/
+.DS_Store
