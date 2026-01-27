@@ -1,55 +1,76 @@
-# Contexte du Projet Motion HPC
+# Mémoire Technique : Projet Motion HPC (EI5-SE)
 
-Ce document sert de mémoire technique et d'état des lieux pour le projet d'optimisation de la chaîne de détection de mouvement "Motion".
+Ce document sert de source de vérité absolue pour le projet. Il doit être maintenu à chaque étape majeure pour éviter toute perte de contexte technique.
 
-## 1. Vue d'ensemble du Projet
-- **Objectif** : Accélérer une application de streaming (détection et suivi d'objets) en utilisant le parallélisme (SIMD, OpenMP, GPU) tout en restant **identique au bit près** au modèle d'or (`motion2`).
-- **Algorithmes clés** : Sigma-Delta (ΣΔ), Morphologie Mathématique (Érosion/Dilatation/Ouverture/Fermeture), CCL (Labeling), CCA (Analyse), k-NN (Matching), Tracking.
-- **Métriques** : Débit en Images Par Seconde (FPS). Mesures effectuées hors I/O (vidéo bufferisée).
+## 1. Vue d'Ensemble du Projet
+*   **Objectif** : Optimiser une chaîne de détection et de suivi d'objets en mouvement (Streaming).
+*   **Modèle d'Or (Golden Model)** : `motion2.c` (doit rester bitwise-identical).
+*   **Cible d'Optimisation** : `motion.c`.
+*   **Environnement** : Cluster Dalek (LIP6).
+    *   **Frontend** : `front.dalek.lip6.fr` (Compilation).
+    *   **Nodes de calcul** : `az4-n4090-*` (Exécution).
+    *   **CPU** : AMD Ryzen 9 7945HX (16 cœurs, 32 threads, AVX-512).
+    *   **GPU** : NVIDIA RTX 4090.
 
-## 2. État de l'Implémentation (au 23 Janvier 2026)
+## 2. État de l'Art des Optimisations Implémentées
 
-### ✅ Optimisations Terminées
-1. **Simplification du Graphe (TP3)** : Implémenté dans `motion.c`. Utilisation du pattern *produce/memorize* pour éviter de recalculer les RoIs de l'image $t-1$.
-2. **SIMD (MIPP)** :
-    - **Sigma-Delta** : Fusion des 4 boucles en 1 seule passe. Utilisation de `mipp::blend` pour supprimer les branchements. Vectorisation 32 pixels (AVX2).
-    - **Morphologie** : Vectorisation avec chargements décalés (shifted loads).
-3. **Multi-threading (OpenMP)** : Parallélisation par ligne (`#pragma omp parallel for schedule(dynamic)`) sur ΣΔ et Morpho.
-4. **Morphologie Séparable** : Élément structurant $3\times3$ décomposé en $(3\times1) \circ (1\times3)$. Réduction du nombre d'opérations de 9 à 6 par pixel.
-5. **Bit-Packing** : Fonctions `morpho_pack_binary` et `morpho_unpack_binary` implémentées. Stockage de 8 pixels par octet (gain bande passante x8).
-6. **Fusion d'Opérateurs** : Fonction `sigma_delta_morpho_fused` créée pour enchaîner ΣΔ + Ouverture + Fermeture en une seule passe de cache.
+### 2.1 Simplification du Graphe de Tâches (TP3)
+*   **Pattern** : Produce/Memorize.
+*   **Gain** : ~2x speedup immédiat.
+*   **Détail** : Au lieu de traiter l'image $t$ et $t-1$ à chaque itération, on mémorise les RoIs de l'image $t$ pour les réutiliser comme $t-1$ à l'itération suivante.
 
-### ⏳ En cours / À Intégrer
-1. **Intégration GPU (OpenCL)** : Kernels écrits dans `kernels/motion_kernels.cl` (ΣΔ, Morpho, Fused). Reste à écrire le code "host" (init OpenCL, buffers).
-2. **Pipeline de Lignes** : Finaliser l'intégration de la fusion dans la boucle principale de `motion.c` (branche `feat/cpu-pipeline-fusion`).
+### 2.2 Vectorisation SIMD (MIPP)
+*   **Sigma-Delta** :
+    *   Fusion des 4 boucles scalaires en 1 seule passe SIMD.
+    *   Utilisation de `mipp::blend` pour supprimer les branchements conditionnels (if/else).
+    *   Traitement de 32 pixels par itération (registres 256-bit AVX2).
+    *   **Gain spécifique** : x18.7 sur Dalek.
+*   **Morphologie** :
+    *   Vectorisation des érosions/dilatations $3\times3$ avec chargements décalés (shifted loads).
+    *   Implémentation des versions séparables ($3\times1$ et $1\times3$).
 
-## 3. Environnement de Travail (Dalek Cluster)
-- **Frontend** : `front.dalek.lip6.fr` (Compilation uniquement).
-- **Noeuds de calcul** : Partition `az4-n4090` (AMD Ryzen 9 7945HX, 16 cœurs/32 threads, GPU RTX 4090).
-- **Outils** : GCC 13.3, CMake 3.28, FFmpeg 6.1.
-- **Validation** : `diff -r logs_ref logs_new` doit être vide.
+### 2.3 Multi-threading (OpenMP)
+*   **Stratégie** : Parallélisation au niveau des lignes (`#pragma omp parallel for schedule(dynamic)`).
+*   **Scaling** : Performance optimale atteinte à **8 threads** (302 FPS en 1080p). Au-delà, l'overhead de gestion des threads et les sections non-parallélisées (CCL/Tracking) limitent le gain.
 
-## 4. Structure Git & Collaboration
-- **Remote** : `https://github.com/Duttonn/ProjetHPC`
-- **Branches (Découpage pour parallélisation)** :
-    - `main` : Version stable validée.
-    - `feat/gpu-acceleration` : Intégration OpenCL (Host code).
-    - `feat/cpu-pipeline-fusion` : Fusion ΣΔ + Morpho et pipelinage par lignes.
-    - `feat/bit-packing-integration` : Passage au format 1-bit dans la boucle principale.
-    - `feat/reporting-viz` : Scripts Python, graphes de speedup et rapport.
+### 2.4 Morphologie Séparable & Bit-Packing
+*   **Séparabilité** : Élément structurant $3\times3$ décomposé en $(3\times1) \circ (1\times3)$. Réduit les opérations de 9 à 6 par pixel.
+*   **Bit-Packing** :
+    *   Format : 8 pixels binaires stockés dans 1 seul octet (`uint8_t`).
+    *   Impact : Division par 8 de la bande passante mémoire.
+    *   Fonctions : `morpho_pack_binary`, `morpho_unpack_binary` et versions `_packed` des opérateurs.
 
-## 5. Performances Actuelles (Sur az4-n4090)
+### 2.5 Fusion d'Opérateurs (Cache-Level Parallelism)
+*   **Fonction** : `sigma_delta_morpho_fused`.
+*   **Concept** : Enchaîner Sigma-Delta + Opening + Closing sur des blocs de lignes pour maximiser la localité temporelle dans le cache L1/L2. Évite de relire l'image entière en RAM entre chaque étape.
+
+## 3. Résultats de Performance (Dalek - Janvier 2026)
+
 | Résolution | Baseline (motion2) | Optimisé (motion) | Speedup |
-|------------|--------------------|-------------------|---------|
-| **1080p**  | 89 FPS             | 262 FPS           | **x2.94** |
-| **4K**     | 29 FPS             | 67 FPS            | **x2.31** |
+| :--- | :--- | :--- | :--- |
+| **1080p** | 89 FPS | **262 FPS** | **x2.94** |
+| **4K** | 29 FPS | **67 FPS** | **x2.31** |
 
-- **Gain ΣΔ seul** : x18.7 (grâce au SIMD AVX2).
-- **Gain Morpho seul** : x9.0 (grâce au SIMD + Séparabilité).
-- **Scaling** : Performance maximale atteinte à **8 threads OpenMP**.
+**Latences détaillées (1080p) :**
+*   Sigma-Delta : 1.232 ms → **0.066 ms** (x18.7)
+*   Morphologie : 1.815 ms → **0.201 ms** (x9.0)
 
-## 6. Points de Vigilance (Anti-Debug)
-- **Identité binaire** : Ne jamais modifier les seuils ou la logique ΣΔ.
-- **Bords** : La morphologie ne traite pas les bords (copie simple). Attention aux accès `j-1` ou `i+1`.
-- **MIPP** : Toujours vérifier que `MOTION_USE_MIPP` est défini, sinon le code retombe en scalaire lent.
-- **OpenCL** : Les transferts CPU <-> GPU sont coûteux. Garder les données sur GPU le plus longtemps possible.
+## 4. Organisation Git & Roadmap
+
+### Branches Actives
+1.  `feat/cpu-pipeline-fusion` : Intégration de la fusion d'opérateurs et pipelinage par blocs.
+2.  `feat/bit-packing-integration` : Passage au format 1-bit dans la boucle principale.
+3.  `feat/gpu-acceleration` : Code host OpenCL et intégration des kernels GPU.
+4.  `feat/reporting-viz` : Scripts Python pour graphes de speedup et schémas.
+
+### Roadmap Technique
+*   **Priorité 1** : Finaliser l'intégration de la fusion dans `motion.c`.
+*   **Priorité 2** : Intégrer le bit-packing pour réduire la pression sur le bus mémoire.
+*   **Priorité 3** : Initialiser le contexte OpenCL pour décharger la morphologie sur le RTX 4090.
+*   **Priorité 4** : Générer les courbes de scaling OpenMP (1 à 32 threads) pour le rapport.
+
+## 5. Points de Vigilance (Anti-Bug)
+*   **Validation** : Toujours lancer `diff -r logs_ref logs_new` après chaque modif.
+*   **Bords** : Les fonctions de morphologie ne traitent pas les bords (1 pixel de marge). Attention lors du chaînage.
+*   **OpenCV** : Désactiver OpenCV (`-DMOTION_OPENCV_LINK=OFF`) pour les tests de performance pure et le debugging Valgrind.
+*   **MIPP** : S'assurer que `-march=native` est bien présent pour activer l'AVX-512 sur Dalek.

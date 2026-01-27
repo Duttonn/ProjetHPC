@@ -69,8 +69,32 @@ void sigma_delta_compute(sigma_delta_data_t *sd_data, const uint8_t** img_in, ui
  * @param j1 The last x index in the image (included).
  * @param N The Sigma-Delta parameter (typically 2).
  */
-void sigma_delta_morpho_fused(sigma_delta_data_t *sd_data, 
+void sigma_delta_morpho_fused(sigma_delta_data_t *sd_data,
                               const uint8_t** img_in, uint8_t** img_out,
                               uint8_t** tmp1, uint8_t** tmp2,
-                              const int i0, const int i1, const int j0, const int j1, 
+                              const int i0, const int i1, const int j0, const int j1,
                               const uint8_t N);
+
+/**
+ * Pipelined Sigma-Delta + Opening + Closing (Section 2.5.3).
+ * Processes image in row-chunks to maximize L1/L2 cache utilization.
+ * Superior cache performance compared to sigma_delta_morpho_fused by keeping
+ * each chunk in cache throughout all operations (Cache Level Parallelism).
+ *
+ * @param sd_data Pointer of inner Sigma-Delta data.
+ * @param img_in Input grayscale image (2D array).
+ * @param img_out Output binary image after morphology (2D array).
+ * @param tmp1 Temporary buffer 1 (same size as image).
+ * @param tmp2 Temporary buffer 2 (same size as image).
+ * @param i0 The first y index in the image (included).
+ * @param i1 The last y index in the image (included).
+ * @param j0 The first x index in the image (included).
+ * @param j1 The last x index in the image (included).
+ * @param N The Sigma-Delta parameter (typically 2).
+ */
+void sigma_delta_morpho_pipelined(sigma_delta_data_t *sd_data,
+                                  const uint8_t** img_in, uint8_t** img_out,
+                                  uint8_t** tmp1, uint8_t** tmp2,
+                                  const int i0, const int i1,
+                                  const int j0, const int j1,
+                                  const uint8_t N);

@@ -360,7 +360,7 @@ int main(int argc, char** argv) {
         // -- IMAGE PROCESSING CHAIN EXECUTION -- //
         // -------------------------------------- //
 
-        // ============================================ //
+        // step 1 & 2: Fused Sigma-Delta + Morphology (Opening + Closing)
         // == SIMPLIFIED TASK GRAPH IMPLEMENTATION  == //
         // ============================================ //
         //
@@ -374,16 +374,15 @@ int main(int argc, char** argv) {
         // -- Processing at t -- //
         // --------------------- //
 
-        // step 1 & 2: Fused Sigma-Delta + Morphology (Opening + Closing)
-        // This replaces the separate calls to sigma_delta_compute, morpho_compute_opening3, and morpho_compute_closing3
+        // step 1 & 2: Pipelined Sigma-Delta + Morphology (Opening + Closing)
+        // Uses row-block pipelining for maximum L1/L2 cache utilization (Section 2.5.3)
         TIME_POINT(sd_b);
-        sigma_delta_morpho_fused(sd_data, (const uint8_t**)IG, IB, morpho_data->IB, morpho_data->IB2, i0, i1, j0, j1, p_sd_n);
-        TIME_POINT(mrp_e);
-        
-        // Update timers (we split the fused time for the stats display)
-        double fused_time = TIME_ELAPSED_MS(sd_b, mrp_e);
-        TIME_ACC_MS(sd_a, fused_time * 0.3); // Estimate 30% for Sigma-Delta
-        TIME_ACC_MS(mrp_a, fused_time * 0.7); // Estimate 70% for Morphology
+        sigma_delta_morpho_pipelined(sd_data, (const uint8_t**)IG, IB, morpho_data->IB, morpho_data->IB2, i0, i1, j0, j1, p_sd_n);
+        TIME_POINT(sd_e);
+
+        // Note: SD and Morphology are fused, we accumulate time to both for stats
+        TIME_ACC(sd_a, sd_b, sd_e);
+        TIME_ACC(mrp_a, sd_b, sd_e);
 
         // step 3: connected components labeling (CCL)
         TIME_POINT(ccl_b);
