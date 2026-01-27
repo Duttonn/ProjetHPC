@@ -374,10 +374,29 @@ int main(int argc, char** argv) {
         // -- Processing at t -- //
         // --------------------- //
 
-        // step 1 & 2: Pipelined Sigma-Delta + Morphology (Opening + Closing)
-        // Uses row-block pipelining for maximum L1/L2 cache utilization (Section 2.5.3)
+        // step 1 & 2: Sigma-Delta + Bit-Packed Morphology (Opening + Closing)
+        // Uses bit-packing (8 pixels per byte) to reduce memory bandwidth (Section 2.5.4)
         TIME_POINT(sd_b);
-        sigma_delta_morpho_pipelined(sd_data, (const uint8_t**)IG, IB, morpho_data->IB, morpho_data->IB2, i0, i1, j0, j1, p_sd_n);
+
+        // 1. Sigma-Delta (produces binary image IB)
+        sigma_delta_compute(sd_data, (const uint8_t**)IG, IB, i0, i1, j0, j1, p_sd_n);
+
+        // 2. Pack binary image IB -> morpho_data->IB_packed
+        morpho_pack_binary((const uint8_t**)IB, morpho_data->IB_packed, i0, i1, j0, j1);
+
+        // 3. Packed Opening (IB_packed -> IB_packed)
+        int packed_width = (j1 - j0 + 1 + 7) / 8; // ceil
+        int jp1_packed = j0 + packed_width - 1;   // inclusive last index
+        morpho_compute_opening3_packed(morpho_data->IB_packed, morpho_data->IB_packed2, morpho_data->IB_packed3,
+                                      i0, i1, j0, jp1_packed);
+
+        // 4. Packed Closing (IB_packed -> IB_packed)
+        morpho_compute_closing3_packed(morpho_data->IB_packed, morpho_data->IB_packed2, morpho_data->IB_packed3,
+                                      i0, i1, j0, jp1_packed);
+
+        // 5. Unpack result IB_packed -> IB (for CCL)
+        morpho_unpack_binary((const uint8_t**)morpho_data->IB_packed, IB, i0, i1, j0, j1);
+
         TIME_POINT(sd_e);
 
         // Note: SD and Morphology are fused, we accumulate time to both for stats

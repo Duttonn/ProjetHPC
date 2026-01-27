@@ -22,17 +22,45 @@ morpho_data_t* morpho_alloc_data(const int i0, const int i1, const int j0, const
     morpho_data->j1 = j1;
     morpho_data->IB = ui8matrix(morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
     morpho_data->IB2 = ui8matrix(morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
+    
+    // Allocate packed buffers (8 pixels per byte)
+    // Width in bytes = ceil(width / 8)
+    int width = j1 - j0 + 1;
+    int packed_width = (width + 7) / 8;
+    int jp1 = j0 + packed_width - 1;
+    
+    morpho_data->IB_packed = ui8matrix(i0, i1, j0, jp1);
+    morpho_data->IB_packed2 = ui8matrix(i0, i1, j0, jp1);
+    morpho_data->IB_packed3 = ui8matrix(i0, i1, j0, jp1);
+    
     return morpho_data;
 }
 
 void morpho_init_data(morpho_data_t* morpho_data) {
     zero_ui8matrix(morpho_data->IB , morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
     zero_ui8matrix(morpho_data->IB2, morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
+    
+    int width = morpho_data->j1 - morpho_data->j0 + 1;
+    int packed_width = (width + 7) / 8;
+    int jp1 = morpho_data->j0 + packed_width - 1;
+    
+    zero_ui8matrix(morpho_data->IB_packed , morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
+    zero_ui8matrix(morpho_data->IB_packed2, morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
+    zero_ui8matrix(morpho_data->IB_packed3, morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
 }
 
 void morpho_free_data(morpho_data_t* morpho_data) {
     free_ui8matrix(morpho_data->IB, morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
     free_ui8matrix(morpho_data->IB2, morpho_data->i0, morpho_data->i1, morpho_data->j0, morpho_data->j1);
+    
+    int width = morpho_data->j1 - morpho_data->j0 + 1;
+    int packed_width = (width + 7) / 8;
+    int jp1 = morpho_data->j0 + packed_width - 1;
+    
+    free_ui8matrix(morpho_data->IB_packed, morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
+    free_ui8matrix(morpho_data->IB_packed2, morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
+    free_ui8matrix(morpho_data->IB_packed3, morpho_data->i0, morpho_data->i1, morpho_data->j0, jp1);
+    
     free(morpho_data);
 }
 
