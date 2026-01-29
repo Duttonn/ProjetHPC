@@ -552,21 +552,13 @@ Thread 15: lignes 1013-1080┘
 
 ## Résultats: Scaling OpenMP
 
-### Graphe: FPS vs Nombre de Threads
+### Graphe 1: FPS vs Nombre de Threads
 
-```
-FPS
-213 ┤                                        ●
-206 ┤                              ●
-189 ┤                    ●
-181 ┤         ●
-172 ┤    ●
-    └────┴────┴────┴────┴────┴────┴────┴────┴─── Threads
-         1    2    4    8   16
+![OpenMP Scaling - FPS](graph_openmp_scaling_fps.png)
 
-Légende:
-● = Mesure réelle
-```
+### Graphe 2: Speedup vs Nombre de Threads
+
+![OpenMP Scaling - Speedup](graph_openmp_speedup.png)
 
 ### Tableau Détaillé
 
@@ -645,22 +637,9 @@ MAIS: Accès non parfaits (cache misses, false sharing, ...)
 
 ## Graphe 1: Performance FPS par Configuration
 
-```
-FPS
-│
-213├─────────────────────────────────●  motion (16t)
-206├───────────────────────────●       motion (8t)
-189├─────────────────────●             motion (4t)
-181├───────────────●                   motion (1t)
-172├────────────●                      motion (2t)
-   │
- 90├─────●                             motion2
-   │
-   └────┴────┴────┴────┴────┴────┴────
-        ref  2t   1t   4t   8t  16t
+![Comparaison FPS - Toutes Configurations](graph_fps_comparison.png)
 
-Gain final: 2.4× (90 → 213 FPS)
-```
+**Gain final: 2.4× (90 → 213 FPS)**
 
 ### Tableau Performances FPS
 
@@ -679,23 +658,17 @@ Gain final: 2.4× (90 → 213 FPS)
 
 ## Graphe 2: Décomposition des Gains par Étape
 
-### Latences par Étape (ms)
+### Comparaison Latences par Étape
 
-```
-Latence (ms)
-│
-5.0├ ████████  motion2
-4.0├ ████████
-3.0├ ████████
-2.0├ ████████  ████  motion optimisé
-1.0├ ████████  ████  ██
-0.0└─────────────────────────────
-    Sigma    Morpho  CCL
-    -Delta
+![Latences par Étape - motion2 vs motion](graph_latencies_comparison.png)
 
-motion2:   1.20ms   1.70ms   4.30ms  = 8.67ms total
-motion:    0.569ms  1.131ms  2.340ms = 5.516ms total
-```
+### Latences Empilées (Breakdown Total)
+
+![Latences Empilées - Décomposition](graph_latency_stacked.png)
+
+**Comparaison:**
+- motion2: 1.20ms (Σ∆) + 1.70ms (Morpho) + 4.30ms (CCL) = 8.67ms total
+- motion: 0.569ms (Σ∆) + 1.131ms (Morpho) + 2.340ms (CCL) = 5.516ms total
 
 ### Tableau Latences Détaillées
 
