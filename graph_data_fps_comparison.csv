@@ -1,0 +1,7 @@
+Configuration,AvgFPS,Speedup
+motion2,90,1.00
+motion_1t,181,2.01
+motion_2t,172,1.91
+motion_4t,189,2.10
+motion_8t,206,2.29
+motion_16t,213,2.37
