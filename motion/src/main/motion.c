@@ -374,32 +374,9 @@ int main(int argc, char** argv) {
         // -- Processing at t -- //
         // --------------------- //
 
-        // step 1 & 2: Sigma-Delta + Morphology (Opening + Closing)
+        // step 1 & 2: Sigma-Delta + Morphology (Opening + Closing) - FUSED VERSION
         TIME_POINT(sd_b);
-
-        // --- PIPELINE OPTIMISÉ PAR BLOCS (CM2: Localité de Cache) ---
-        // On traite par blocs de 16 lignes pour rester dans les caches L1/L2.
-        // On utilise la morphologie séparable (CM3: SIMD horizontal/vertical).
-        const int block_size = 16;
-        for (int i_start = i0; i_start <= i1; i_start += block_size) {
-            int i_end = (i_start + block_size - 1 > i1) ? i1 : i_start + block_size - 1;
-            
-            // 1. Sigma-Delta (Vectorisé SIMD)
-            sigma_delta_compute(sd_data, (const uint8_t**)IG, IB, i_start, i_end, j0, j1, p_sd_n);
-            
-            // 2. Morphologie (Ouverture : Erosion -> Dilation)
-            morpho_compute_erosion_h3 (IB,  morpho_data->IB, i_start, i_end, j0, j1);
-            morpho_compute_erosion_v3 (morpho_data->IB,  morpho_data->IB2, i_start, i_end, j0, j1);
-            morpho_compute_dilation_h3(morpho_data->IB2, morpho_data->IB,  i_start, i_end, j0, j1);
-            morpho_compute_dilation_v3(morpho_data->IB,  IB,               i_start, i_end, j0, j1);
-            
-            // 3. Morphologie (Fermeture : Dilation -> Erosion)
-            morpho_compute_dilation_h3(IB,               morpho_data->IB,  i_start, i_end, j0, j1);
-            morpho_compute_dilation_v3(morpho_data->IB,  morpho_data->IB2, i_start, i_end, j0, j1);
-            morpho_compute_erosion_h3 (morpho_data->IB2, morpho_data->IB,  i_start, i_end, j0, j1);
-            morpho_compute_erosion_v3 (morpho_data->IB,  IB,               i_start, i_end, j0, j1);
-        }
-
+        sigma_delta_morpho_fused(sd_data, (const uint8_t**)IG, IB, morpho_data->IB, morpho_data->IB2, i0, i1, j0, j1, p_sd_n);
         TIME_POINT(sd_e);
 
         // Note: SD and Morphology are fused, we accumulate time to both for stats
