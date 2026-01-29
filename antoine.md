@@ -12,10 +12,10 @@ On vise un **17-18/20**.
 | Optimisation | Section Poly | Chapitre Cours | Explication pour l'oral |
 | :--- | :--- | :--- | :--- |
 | **Task Graph (TP3)** | 2.1 | CM1 | On ne traite plus frame $t-1$, on réutilise les RoIs mémorisés. Gain x2. |
-| **Row-Block Pipelining** | 2.5.3 | **CM2 (Caches)** | On traite par blocs de 16 lignes pour rester en Cache L1/L2. Évite la RAM lente. |
+| **Fusion d'Opérateurs** | 2.5.3 | **CM2 (Caches)** | Sigma-Delta + Morpho enchaînés pour garder les données en Cache L1/L2. Évite la RAM lente. |
 | **SIMD (MIPP)** | 2.5.1 | **CM3 (SIMD)** | On traite 32 pixels d'un coup avec les registres AVX-512. |
-| **Morpho Séparable** | 2.5.2 | CM3 | 3x3 (9 pixels) devient 1x3 + 3x1 (6 pixels). Moins de calculs. |
-| **OpenMP** | 2.5.1 | **CM4 (OpenMP)** | Parallélisation sur les 16 cœurs du Ryzen 9 avec `schedule(dynamic)`. |
+| **Morpho Séparable** | 2.5.2 | CM3 | 3x3 (9 pixels) devient 1x3 + 3x1 (6 pixels). Moins de calculs + vectorisation. |
+| **OpenMP** | 2.5.1 | **CM4 (OpenMP)** | Parallélisation sur les 16 cœurs du Ryzen 9 avec `schedule(static)`. |
 
 ---
 
@@ -76,9 +76,9 @@ Prends un Excel ou un script Python et remplis avec les valeurs que tu auras dan
 
 1. **Slide 1-2 : Intro.** Détection de mouvement, caméra fixe.
 2. **Slide 3 : Simplification (TP3).** Schéma avant/après. "On a divisé le travail par 2".
-3. **Slide 4 : SIMD (CM3).** Montre le gain sur Sigma-Delta. "32 pixels/cycle".
-4. **Slide 5 : Cache Locality (CM2).** Explique le **Pipelining par blocs de lignes**. C'est ça qui va te donner la meilleure note. Dis que ça évite de vider le cache L1.
-5. **Slide 6 : Résultats.** Le tableau des FPS et le graphe de scaling.
-6. **Slide 7 : Conclusion.** "Optimisation CPU poussée, GPU non nécessaire vu les perfs CPU".
+3. **Slide 4 : SIMD (CM3).** Montre le gain sur Sigma-Delta. "32 pixels/cycle avec AVX-512".
+4. **Slide 5 : Fusion d'Opérateurs (CM2).** Explique comment **enchaîner Sigma-Delta + Morpho garde les données en cache L1/L2**. C'est ça qui va te donner la meilleure note. Dis qu'on évite les allers-retours avec la RAM.
+5. **Slide 6 : Résultats.** Le tableau des FPS et le graphe de scaling OpenMP (1, 4, 8, 16 threads).
+6. **Slide 7 : Conclusion.** "Optimisation CPU poussée, validation bit-à-bit réussie, GPU non nécessaire vu les perfs CPU".
 
 Bonne chance Antoine ! Si tu as un doute, regarde le fichier `report.md`, tout est dedans.
