@@ -1,3 +1,4 @@
+hello world
 # Mémoire Technique : Projet Motion HPC (EI5-SE)
 
 Ce document sert de source de vérité absolue pour le projet. Il doit être maintenu à chaque étape majeure pour éviter toute perte de contexte technique.
@@ -24,17 +25,17 @@ Ce document sert de source de vérité absolue pour le projet. Il doit être mai
     *   Fusion des 4 boucles scalaires en 1 seule passe SIMD.
     *   Utilisation de `mipp::blend` pour supprimer les branchements conditionnels (if/else).
     *   Traitement de 32 pixels par itération (registres 256-bit AVX2).
-    *   **Gain spécifique** : x18.7 sur Dalek.
+    *   **Gain spécifique** : x2.11 sur Dalek.
 *   **Morphologie** :
-    *   Vectorisation des érosions/dilatations $3\times3$ avec chargements décalés (shifted loads).
-    *   Implémentation des versions séparables ($3\times1$ et $1\times3$).
+    *   Vectorisation des érosions/dilatations $3\\times3$ avec chargements décalés (shifted loads).
+    *   Implémentation des versions séparables ($3\\times1$ et $1\\times3$).
 
 ### 2.3 Multi-threading (OpenMP)
 *   **Stratégie** : Parallélisation au niveau des lignes (`#pragma omp parallel for schedule(dynamic)`).
-*   **Scaling** : Performance optimale atteinte à **8 threads** (302 FPS en 1080p). Au-delà, l'overhead de gestion des threads et les sections non-parallélisées (CCL/Tracking) limitent le gain.
+*   **Scaling** : Performance optimale atteinte à **16 threads** (213 FPS en 1080p). Au-delà, l'overhead de gestion des threads et les sections non-parallélisées (CCL/Tracking) limitent le gain.
 
 ### 2.4 Morphologie Séparable & Bit-Packing
-*   **Séparabilité** : Élément structurant $3\times3$ décomposé en $(3\times1) \circ (1\times3)$. Réduit les opérations de 9 à 6 par pixel.
+*   **Séparabilité** : Élément structurant $3\\times3$ décomposé en $(3\\times1) \\circ (1\\times3)$. Réduit les opérations de 9 à 6 par pixel.
 *   **Bit-Packing** :
     *   Format : 8 pixels binaires stockés dans 1 seul octet (`uint8_t`).
     *   Impact : Division par 8 de la bande passante mémoire.
@@ -48,12 +49,12 @@ Ce document sert de source de vérité absolue pour le projet. Il doit être mai
 
 | Résolution | Baseline (motion2) | Optimisé (motion) | Speedup |
 | :--- | :--- | :--- | :--- |
-| **1080p** | 89 FPS | **262 FPS** | **x2.94** |
+| **1080p** | 90 FPS | **213 FPS** | **x2.37** |
 | **4K** | 29 FPS | **67 FPS** | **x2.31** |
 
 **Latences détaillées (1080p) :**
-*   Sigma-Delta : 1.232 ms → **0.066 ms** (x18.7)
-*   Morphologie : 1.815 ms → **0.201 ms** (x9.0)
+*   Sigma-Delta : 1.20 ms → **0.569 ms** (x2.11)
+*   Morphologie : 1.70 ms → **1.131 ms** (x1.50)
 
 ## 4. Organisation Git & Roadmap
 
@@ -74,3 +75,4 @@ Ce document sert de source de vérité absolue pour le projet. Il doit être mai
 *   **Bords** : Les fonctions de morphologie ne traitent pas les bords (1 pixel de marge). Attention lors du chaînage.
 *   **OpenCV** : Désactiver OpenCV (`-DMOTION_OPENCV_LINK=OFF`) pour les tests de performance pure et le debugging Valgrind.
 *   **MIPP** : S'assurer que `-march=native` est bien présent pour activer l'AVX-512 sur Dalek.
+hello world2

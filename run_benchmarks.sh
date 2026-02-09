@@ -8,8 +8,8 @@ echo "BENCHMARK MOTION - DALEK CLUSTER"
 echo "==================================="
 echo ""
 
-VIDEO="traffic/1080p_day_street_top_view_snow.mp4"
-FRAMES=100
+VIDEO="traffic/source.txt"
+FRAMES=50
 
 # Aller dans le répertoire du projet
 cd ~/ProjetHPC
